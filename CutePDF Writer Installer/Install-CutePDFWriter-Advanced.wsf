@@ -1,0 +1,82 @@
+<job id="CutePDFWriter">
+<script language="VBScript" src="..\..\scripts\ZTIUtility.vbs"/>
+<script language="VBScript"> 
+
+' //******************************************************
+' //
+' // Purpose: Used to install Acro Software CutePDF Writer 2.8 with
+' // unchanged start page and no toolbar for Internet Explorer
+' // 
+' // Usage: cscript Install-CutePDFWriter-Advanced.wsf [/debug:true]
+' //
+' // Author: Johan Arwidmark
+' // 
+' // Disclaimer: The script is provided AS IS, with no warranties.
+' //
+' //******************************************************
+
+'//----------------------------------------------------------------------------
+'//
+'// Global constant and variable declarations
+'//
+'//---------------------------------------------------------------------------- 
+
+Option Explicit 
+Dim iRetVal 
+
+'//----------------------------------------------------------------------------
+'// End declarations
+'//---------------------------------------------------------------------------- 
+
+'//----------------------------------------------------------------------------
+'// Main routine
+'//---------------------------------------------------------------------------- 
+
+'On Error Resume Next
+iRetVal = ZTIProcess
+ProcessResults iRetVal
+On Error Goto 0 
+
+'//---------------------------------------------------------------------------
+'//
+'// Function: ZTIProcess()
+'//
+'// Input: None
+'// 
+'// Return: Success - 0
+'// Failure - non-zero
+'//
+'// Purpose: Perform main ZTI processing
+'// 
+'//---------------------------------------------------------------------------
+
+Function ZTIProcess() 
+	iRetVal = Success 
+	ZTIProcess = iRetval 
+	
+	Dim sName
+	Dim sIEStartPage
+	
+	sName = "Acro Software CutePDF Writer 2.8"
+
+	oLogging.CreateEntry sName & " setup started", LogTypeInfo	
+
+	' Disable Zone Checks
+	oEnv("SEE_MASK_NOZONECHECKS") = 1 
+
+	oLogging.CreateEntry "Starting main setup", LogTypeInfo	
+
+	' Run main setup files
+	iRetVal = oShell.Run("setup.exe -s", 0, True)
+	iRetVal = oShell.Run("unpacked\setup.exe /cpw07012009 /W2 /vs", 0, True)
+
+	oLogging.CreateEntry sName & " setup ended", LogTypeInfo	
+
+	' Enable Zone Checks
+	oEnv.Remove("SEE_MASK_NOZONECHECKS")
+	
+End Function 
+
+</script>
+</job>
+

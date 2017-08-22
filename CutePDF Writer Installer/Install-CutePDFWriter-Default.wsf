@@ -1,0 +1,101 @@
+<job id="CutePDFWriter">
+<script language="VBScript" src="..\..\scripts\ZTIUtility.vbs"/>
+<script language="VBScript"> 
+
+' //******************************************************
+' //
+' // Purpose: Used to install Acro Software CutePDF Writer 2.8 with
+' // unchanged start page and no toolbar for Internet Explorer
+' // 
+' // Usage: cscript Install-CutePDFWriter-Default [/debug:true]
+' //
+' // Author: Johan Arwidmark
+' // 
+' // Disclaimer: The script is provided AS IS, with no warranties.
+' //
+' //******************************************************
+
+'//----------------------------------------------------------------------------
+'//
+'// Global constant and variable declarations
+'//
+'//---------------------------------------------------------------------------- 
+
+Option Explicit 
+Dim iRetVal 
+
+'//----------------------------------------------------------------------------
+'// End declarations
+'//---------------------------------------------------------------------------- 
+
+'//----------------------------------------------------------------------------
+'// Main routine
+'//---------------------------------------------------------------------------- 
+
+'On Error Resume Next
+iRetVal = ZTIProcess
+ProcessResults iRetVal
+On Error Goto 0 
+
+'//---------------------------------------------------------------------------
+'//
+'// Function: ZTIProcess()
+'//
+'// Input: None
+'// 
+'// Return: Success - 0
+'// Failure - non-zero
+'//
+'// Purpose: Perform main ZTI processing
+'// 
+'//---------------------------------------------------------------------------
+
+Function ZTIProcess() 
+	iRetVal = Success 
+	ZTIProcess = iRetval 
+	
+	Dim sName
+	Dim sIEStartPage
+	
+	sName = "Acro Software CutePDF Writer 2.8"
+
+	oLogging.CreateEntry sName & " setup started", LogTypeInfo	
+
+	oLogging.CreateEntry "Reading current Internet Explorer Start Page for later restore", LogTypeInfo 
+
+	' Reading current Internet Explorer Start Page for later restore (CutePDF writer setup will add its own).
+	sIEStartPage = oShell.Regread("HKEY_CURRENT_USER\Software\Microsoft\Internet Explorer\Main\Start Page")
+	
+	oLogging.CreateEntry "Current Internet Explorer Start page is: " & sIEStartPage, LogTypeInfo	
+
+	' Disable Zone Checks
+	oEnv("SEE_MASK_NOZONECHECKS") = 1 
+
+	oLogging.CreateEntry "Starting main setup", LogTypeInfo	
+
+	' Run main setup files
+	iRetVal = oShell.Run("setup.exe -s", 0, True)
+	iRetVal = oShell.Run("CuteWriter.exe /verysilent", 0, True)
+
+	oLogging.CreateEntry "Uninstalling the ASK toolbar", LogTypeInfo
+
+	' Uninstalling the not-that-bright ASK toolbar
+	iRetVal = oShell.Run("msiexec /x {86D4B82A-ABED-442A-BE86-96357B70F4FE} /qn", 0, True)
+
+	oLogging.CreateEntry "CutePDF Writer set Internet Explorer Start page to: " & oShell.Regread("HKEY_CURRENT_USER\Software\Microsoft\Internet Explorer\Main\Start Page"), LogTypeInfo	
+	oLogging.CreateEntry "Restoring Internet Explorer Start page to: " & sIEStartPage, LogTypeInfo	
+	
+	' Restore Internet Explorer Start page
+	oShell.RegWrite "HKEY_CURRENT_USER\Software\Microsoft\Internet Explorer\Main\Start Page", sIEStartPage, "REG_SZ"
+
+
+	oLogging.CreateEntry sName & " setup ended", LogTypeInfo	
+
+	' Enable Zone Checks
+	oEnv.Remove("SEE_MASK_NOZONECHECKS")
+	
+End Function 
+
+</script>
+</job>
+

@@ -1,0 +1,5 @@
+ScanStateArgs=/ue:*\* /ui:VIAMONSTRA\* /uel:60
+USMTMigFiles001=MigApp.xml
+USMTMigFiles002=MigUser.xml
+USMTMigFiles003=MigViaMonstraData.xml
+USMTConfigFile=ViaMonstraConfig.xml

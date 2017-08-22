@@ -1,0 +1,212 @@
+<html>
+
+<!--
+
+' // ***************************************************************
+' // 
+' // Purpose: Sample script, used to start a computer refresh
+' // 
+' // Author: Johan Arwidmark
+' // 
+' // Disclaimer: The script is provided AS IS, with no warranties.
+' // 
+' // ***************************************************************
+
+-->
+
+<head>
+<title>Refresh Computer</title>
+
+<link href="Wizard.css" type="text/css" rel="stylesheet">
+
+<HTA:APPLICATION ID="oRefreshComputer" 
+    APPLICATIONNAME="RefreshComputer" 
+
+    SCROLL="no" 
+    SELECTION="no" 
+    INNERBORDER="no" 
+    BORDER="normal" 
+    SINGLEINSTANCE="no" 
+    SYSMENU="yes" 
+    MAXIMIZEBUTTON="no" 
+    MINIMIZEBUTTON="no" 
+
+
+</head>
+
+<body onload="Initialize();">
+
+<script language="vbscript">
+
+Sub Initialize	
+
+    ' Resize me
+    window.resizeTo 550,300
+	
+	' Set Focus to the Continue button
+	ButtonContinue.Focus
+
+	' Check for psexec.exe
+	Set oFSO = CreateObject("Scripting.FileSystemObject")
+	sFilename = "psexec.exe"
+
+	if window.location.hostname <> "" then
+		sScriptDir = oFSO.GetParentFolderName(unescape("\\" & window.location.hostname & window.location.pathname ))
+	else
+		sScriptDir = oFSO.GetParentFolderName(unescape(window.location.pathname))
+	end if
+	
+	If oFSO.FileExists(sScriptDir & "\" & sFilename) then
+		' Psexec found... 
+	Else
+		' Could not locate Psexec.exe, disabling remote refresh
+		Msgbox "Could not locate Psexec.exe in the " & sScriptDir & " folder. Disabling Remote refresh",0,"Warning"
+		sOSDComputerName.disabled = true
+		sOSDComputerName.Value = "(local only)"
+	End if
+
+End Sub
+
+
+Sub StartRefresh
+
+    sUserID = "BuildAccount"
+	sUserPassword = "P@ssw0rd"
+	sUserDomain = "VIAMONSTRA"
+	sDeployroot = "\\MDT01\MDTProduction$"
+
+	' Get the current OS version and build from WMI
+	Set objWMI = GetObject("winmgmts:")
+	Set oInstances = objWMI.ExecQuery("select * from Win32_OperatingSystem")
+	For Each oInstance In oInstances
+		sOSCurrentName = oInstance.Name
+	Next
+	
+	' Search sOSCurrentName string for "Server"
+	Set objRegExp = CreateObject("VBScript.RegExp")
+	objRegExp.Pattern = "Server"
+	objRegExp.IgnoreCase = True
+	objRegExp.Global = False
+	
+	isServer = objRegExp.Test(sOSCurrentName)
+
+	
+	if FullBackup.checked Then
+		' Full Backup selected, set ComputerBackupLocation to AUTO
+		sComputerBackup = "AUTO"
+	Else 
+		' No Backup selected, set ComputerBackupLocation to NONE
+		sComputerBackup = "NONE"
+	End If
+	
+	if sOSDComputerName.Value = "(local only)" or sOSDComputerName.Value = "" Then
+		
+		' Assume local refresh
+		sPSExec = ""
+		
+		' As a safeguard, check if you are trying to refresh a local server
+		If isServer = True Then
+			Msgbox "You are trying to refresh a local server, aborting..."
+			bErr = True
+			ExitProgram
+		End If
+	Else 
+		' Remote refresh, start psexec
+		sPSExec = "psexec /accepteula \\" & sOSDComputerName.Value & " -u " & sUserDomain & "\" & sUserID & " -p " & sUserPassword & " " & ""
+		
+		' As a safeguard, check for typing in the local computername, rather than a remote machine
+		
+		Set objWshNetwork = CreateObject("WScript.Network")
+		
+		If 	uCase(sOSDComputerName.Value) = uCase(objWshNetwork.ComputerName) Then
+			Msgbox "You are trying to remotely refresh a local machine, aborting..."
+			bErr = True
+			ExitProgram
+		End If
+
+	End if 
+    
+	' Start Refresh
+	
+	If bErr = True Then 
+		ExitProgram
+	Else
+		sCmd = sPSExec & "cscript.exe " & sDeployroot & "\Scripts\LiteTouch.vbs /SkipComputerBackup:YES /ComputerBackupLocation:"& sComputerBackup & " /SkipTaskSequence:YES /TaskSequenceID:" & sTaskSequence.Value & " /UserPassword:" & sUserPassword & " /SkipDeploymentType:YES /DeploymentType:REFRESH"
+
+		Set oShell = CreateObject("WScript.Shell")
+		oShell.run sCmd
+
+		ExitProgram
+	End if 
+	
+End Sub
+
+Sub ExitProgram
+	window.close()
+End Sub
+
+sub ButtonAbortClick
+	If Msgbox("Are you sure you want to cancel?",4,"Cancel Computer Refresh?") = vbYES Then
+		window.Close
+	End If
+end sub
+
+
+</script>
+
+<table border="0" align=left>
+	<tr>
+		<td width="20">&nbsp;</td>
+		<td width="480">&nbsp;</td>
+	</tr>
+	<tr>
+		<td>&nbsp;</td>
+		<td>
+			<h1 valign="Left">Refresh Computer</h1>
+		</td>
+	</tr>
+	<tr>
+		<td>&nbsp;</td>
+		<td height=20>
+			Type in the computer name to refresh (leave blank for the local computer)
+		</td>
+	</tr>
+	<tr>
+		<td>&nbsp;</td>
+		<td>
+			<Input type=text name="sOSDComputerName" tabindex=1 size="20"><br>
+		</td>
+	</tr>
+
+	<tr>
+		<td>&nbsp;</td>
+		<td height=20>
+			Select Task Sequence to execute
+		</td>
+	</tr>
+
+	<tr>
+		<td>&nbsp;</td>
+                <td>
+			<Select name="sTaskSequence" tabindex=2>
+			<option value="W7-X86-001">Windows 7 Enterprise Eng x86 Custom Image</option><br>
+			</Select>
+		</td>
+	</tr>
+	<tr>
+		<td>&nbsp;</td>
+		<td height=30	>
+			<input type="checkbox" name="FullBackup" tabindex=3 checked>&nbsp;Enable Full Backup (Recommended)<br><br>
+		</td>
+	</tr>
+	<tr>
+		<td>&nbsp;</td>
+		<td>
+			<input name=ButtonAbort type=button onclick="ButtonAbortClick();" value="Abort">
+			&nbsp;<input name=ButtonContinue type=button onclick="StartRefresh();" value="Continue">
+		</td>
+	</tr>
+</table>
+
+</body>
+</html>
